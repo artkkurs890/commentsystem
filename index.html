@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Продвинутая система комментариев</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef2f3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #comments-container {
+            width: 500px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: 0.3s;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            transition: 0.3s;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+        }
+        button {
+            padding: 8px 12px;
+            margin: 5px 2px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .comment {
+            background: #fafafa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .comment:hover {
+            transform: scale(1.02);
+        }
+        .tag {
+            background: #ddd;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+        .reply-container {
+            margin-left: 20px;
+        }
+        .notification {
+            background: #ffeb3b;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="comments-container">
+        <h2>Комментарии</h2>
+        <div id="notification" class="notification">У вас есть новые ответы!</div>
+        <input id="nameInput" type="text" placeholder="Ваше имя">
+        <textarea id="commentInput" placeholder="Комментарий..."></textarea>
+        <select id="tagSelect">
+            <option value="Баг">Баг</option>
+            <option value="Вирус">Вирус</option>
+            <option value="Ошибка">Ошибка</option>
+            <option value="Другое">Другое</option>
+        </select>
+        <button id="addComment">Добавить</button>
+        <div id="commentsList"></div>
+    </div>
+    <script>
+        function getComments() {
+            return JSON.parse(localStorage.getItem("comments") || "[]");
+        }
+
+        function saveComments(comments) {
+            localStorage.setItem("comments", JSON.stringify(comments));
+        }
+
+        document.getElementById("addComment").addEventListener("click", function() {
+            let name = document.getElementById("nameInput").value.trim();
+            let text = document.getElementById("commentInput").value.trim();
+            let tag = document.getElementById("tagSelect").value;
+            
+            if (name === "" || text === "") {
+                alert("Введите имя и комментарий!");
+                return;
+            }
+            
+            let comments = getComments();
+            comments.push({ id: Date.now(), name, text, tag, likes: 0 });
+            saveComments(comments);
+            renderComments();
+        });
+
+        function renderComments() {
+            let commentsList = document.getElementById("commentsList");
+            commentsList.innerHTML = "";
+            let comments = getComments();
+            let currentUser = document.getElementById("nameInput").value.trim();
+            
+            comments.forEach(comment => {
+                let commentElement = document.createElement("div");
+                commentElement.classList.add("comment");
+                commentElement.innerHTML = `
+                    <strong>${comment.name}</strong>: ${comment.text} <br> 
+                    <span class='tag'>${comment.tag}</span>
+                    ${comment.name === currentUser ? `<button onclick="deleteComment(${comment.id})">Удалить</button>` : ''}
+                    ${comment.name === currentUser ? `<button onclick="editComment(${comment.id})">Редактировать</button>` : ''}
+                    <button onclick="replyToComment(${comment.id})">Ответить</button>
+                `;
+                commentsList.appendChild(commentElement);
+            });
+        }
+
+        function deleteComment(id) {
+            let comments = getComments().filter(comment => comment.id !== id);
+            saveComments(comments);
+            renderComments();
+        }
+
+        function editComment(id) {
+            let comments = getComments();
+            let comment = comments.find(c => c.id === id);
+            if (!comment) return;
+            
+            let newText = prompt("Редактировать комментарий:", comment.text);
+            if (newText !== null) {
+                comment.text = newText;
+                saveComments(comments);
+                renderComments();
+            }
+        }
+
+        function replyToComment(id) {
+            let name = document.getElementById("nameInput").value.trim();
+            let text = document.getElementById("commentInput").value.trim();
+            if (name === "" || text === "") {
+                alert("Введите имя и комментарий!");
+                return;
+            }
+            
+            let comments = getComments();
+            comments.push({ id: Date.now(), name, text: `Ответ на ${id}: ${text}`, tag: "Ответ", likes: 0 });
+            saveComments(comments);
+            renderComments();
+        }
+
+        window.onload = renderComments;
+    </script>
+</body>
+</html>
