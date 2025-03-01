@@ -34,11 +34,6 @@
             border: 1px solid #ccc;
             transition: 0.3s;
         }
-        input:focus, textarea:focus, select:focus {
-            border-color: #007bff;
-            outline: none;
-            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
-        }
         button {
             padding: 8px 12px;
             margin: 5px 2px;
@@ -57,38 +52,13 @@
             padding: 12px;
             border-radius: 8px;
             margin-top: 10px;
-            position: relative;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-        }
-        .comment:hover {
-            transform: scale(1.02);
-        }
-        .tag {
-            background: #ddd;
-            padding: 5px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            margin-top: 5px;
-            display: inline-block;
-        }
-        .reply-container {
-            margin-left: 20px;
-        }
-        .notification {
-            background: #ffeb3b;
-            padding: 8px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            display: none;
-            text-align: center;
         }
     </style>
 </head>
 <body>
     <div id="comments-container">
         <h2>Комментарии</h2>
-        <div id="notification" class="notification">У вас есть новые ответы!</div>
         <input id="nameInput" type="text" placeholder="Ваше имя">
         <textarea id="commentInput" placeholder="Комментарий..."></textarea>
         <select id="tagSelect">
@@ -100,108 +70,80 @@
         <button id="addComment">Добавить</button>
         <div id="commentsList"></div>
     </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+    
     <script>
-        function getComments() {
-            return JSON.parse(localStorage.getItem("comments") || "[]");
-        }
+        // Инициализация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDa0FAsfEfbmKftbipZsIXz5hZoW1WIQFQ",
+            authDomain: "comments-aa1fb.firebaseapp.com",
+            databaseURL: "https://comments-aa1fb-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "comments-aa1fb",
+            storageBucket: "comments-aa1fb.firebasestorage.app",
+            messagingSenderId: "699556396912",
+            appId: "1:699556396912:web:d81ccd29e8bf44af67d9b5",
+            measurementId: "G-EQD9ZVS550"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-        function saveComments(comments) {
-            localStorage.setItem("comments", JSON.stringify(comments));
-        }
-
+        // Добавление комментария в Firebase
         document.getElementById("addComment").addEventListener("click", function() {
             let name = document.getElementById("nameInput").value.trim();
             let text = document.getElementById("commentInput").value.trim();
             let tag = document.getElementById("tagSelect").value;
-            
+
             if (name === "" || text === "") {
                 alert("Введите имя и комментарий!");
                 return;
             }
-            
-            let comments = getComments();
-            comments.push({ id: Date.now(), name, text, tag, likes: 0 });
-            saveComments(comments);
-            renderComments();
+
+            let newComment = {
+                name: name,
+                text: text,
+                tag: tag,
+                timestamp: Date.now()
+            };
+
+            database.ref("comments").push(newComment);
+            document.getElementById("commentInput").value = ""; // Очистка поля ввода
         });
 
-        function renderComments() {
+        // Функция для отображения комментариев
+        function renderComments(snapshot) {
             let commentsList = document.getElementById("commentsList");
             commentsList.innerHTML = "";
-            let comments = getComments();
-            let currentUser = document.getElementById("nameInput").value.trim();
-            
-            comments.forEach(comment => {
+
+            snapshot.forEach(childSnapshot => {
+                let comment = childSnapshot.val();
+                let commentId = childSnapshot.key;
                 let commentElement = document.createElement("div");
                 commentElement.classList.add("comment");
+
                 commentElement.innerHTML = `
-                    <strong>${comment.name}</strong>: ${comment.text} <br> 
+                    <strong>${comment.name}</strong>: ${comment.text} <br>
                     <span class='tag'>${comment.tag}</span>
-                    ${comment.name === currentUser ? `<button onclick="deleteComment(${comment.id})">Удалить</button>` : ''}
-                    ${comment.name === currentUser ? `<button onclick="editComment(${comment.id})">Редактировать</button>` : ''}
-                    <button onclick="replyToComment(${comment.id})">Ответить</button>
+                    <button onclick="deleteComment('${commentId}', '${comment.name}')">Удалить</button>
                 `;
                 commentsList.appendChild(commentElement);
             });
         }
 
-        function deleteComment(id) {
-            let comments = getComments().filter(comment => comment.id !== id);
-            saveComments(comments);
-            renderComments();
-        }
-
-        function editComment(id) {
-            let comments = getComments();
-            let comment = comments.find(c => c.id === id);
-            if (!comment) return;
-            
-            let newText = prompt("Редактировать комментарий:", comment.text);
-            if (newText !== null) {
-                comment.text = newText;
-                saveComments(comments);
-                renderComments();
-            }
-        }
-
-        function replyToComment(id) {
-            let name = document.getElementById("nameInput").value.trim();
-            let text = document.getElementById("commentInput").value.trim();
-            if (name === "" || text === "") {
-                alert("Введите имя и комментарий!");
+        // Функция для удаления комментария (только для автора)
+        function deleteComment(commentId, author) {
+            let currentUser = document.getElementById("nameInput").value.trim();
+            if (currentUser !== author) {
+                alert("Вы не можете удалить этот комментарий!");
                 return;
             }
-            
-            let comments = getComments();
-            comments.push({ id: Date.now(), name, text: `Ответ на ${id}: ${text}`, tag: "Ответ", likes: 0 });
-            saveComments(comments);
-            renderComments();
+            database.ref("comments/" + commentId).remove();
         }
 
-        window.onload = renderComments;
+        // Подписка на обновления в реальном времени
+        database.ref("comments").on("value", renderComments);
     </script>
-    <!-- Подключаем Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-
-<script>
-  // Твоя конфигурация Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyDa0FAsfEfbmKftbipZsIXz5hZoW1WIQFQ",
-    authDomain: "comments-aa1fb.firebaseapp.com",
-    databaseURL: "https://comments-aa1fb-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "comments-aa1fb",
-    storageBucket: "comments-aa1fb.firebasestorage.app",
-    messagingSenderId: "699556396912",
-    appId: "1:699556396912:web:d81ccd29e8bf44af67d9b5",
-    measurementId: "G-EQD9ZVS550"
-  };
-
-  // Инициализация Firebase
-  firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
-</script>
-
 </body>
 </html>
