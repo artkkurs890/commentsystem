@@ -180,5 +180,28 @@
 
         window.onload = renderComments;
     </script>
+    <!-- Подключаем Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+
+<script>
+  // Твоя конфигурация Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyDa0FAsfEfbmKftbipZsIXz5hZoW1WIQFQ",
+    authDomain: "comments-aa1fb.firebaseapp.com",
+    databaseURL: "https://comments-aa1fb-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "comments-aa1fb",
+    storageBucket: "comments-aa1fb.firebasestorage.app",
+    messagingSenderId: "699556396912",
+    appId: "1:699556396912:web:d81ccd29e8bf44af67d9b5",
+    measurementId: "G-EQD9ZVS550"
+  };
+
+  // Инициализация Firebase
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+</script>
+
 </body>
 </html>
